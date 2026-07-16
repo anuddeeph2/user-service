@@ -110,6 +110,12 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          # Push a plain single-arch image (manifest.json), not an OCI image index
+          # (list.manifest.json) — buildx enables provenance/SBOM attestations by
+          # default, which the CloudBees JFrog scanner plugin can't resolve.
+          provenance: false
+          sbom: false
+          platforms: linux/amd64
           tags: |
             ${{ secrets.JFROG_URL }}/fitness-tracker-docker/user-service:${{ steps.vars.outputs.image_tag }}
             ${{ secrets.JFROG_URL }}/fitness-tracker-docker/user-service:latest
