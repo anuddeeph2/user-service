@@ -38,11 +38,25 @@ jobs:
       id-token: write
       contents: read
 
+    outputs:
+      image_tag: ${{ steps.vars.outputs.image_tag }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # full history improves SonarQube analysis
+
+      # Mirrors the Jenkins side's ${BRANCH_NAME_CLEAN}-${BUILD_NUMBER} tag:
+      # github.run_number is the GitHub Actions equivalent of Jenkins' BUILD_NUMBER
+      # (an auto-incrementing counter per workflow) - the commit SHA alone doesn't
+      # give you that same "build N" traceability.
+      - name: Compute image tag
+        id: vars
+        run: |
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          BRANCH_CLEAN=$(echo "$BRANCH" | tr '/' '-')
+          echo "image_tag=${BRANCH_CLEAN}-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -97,14 +111,14 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ${{ secrets.JFROG_URL }}/fitness-tracker-docker/user-service:${{ github.sha }}
+            ${{ secrets.JFROG_URL }}/fitness-tracker-docker/user-service:${{ steps.vars.outputs.image_tag }}
             ${{ secrets.JFROG_URL }}/fitness-tracker-docker/user-service:latest
 
       - name: Register build artifact in CloudBees Unify
         uses: cloudbees-io-gha/register-build-artifact@v3
         with:
           name: user-service
-          version: ${{ github.sha }}
+          version: ${{ steps.vars.outputs.image_tag }}
           url: https://${{ secrets.JFROG_URL }}/ui/repos/tree/General/fitness-tracker-docker/user-service
           type: Docker
           commit: ${{ github.sha }}
@@ -127,7 +141,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.24.0
         continue-on-error: true
         with:
-          image-ref: ${{ secrets.JFROG_URL }}/fitness-tracker-docker/user-service:${{ github.sha }}
+          image-ref: ${{ secrets.JFROG_URL }}/fitness-tracker-docker/user-service:${{ needs.build-test-scan.outputs.image_tag }}
           format: sarif
           output: trivy-results.sarif
 
@@ -136,7 +150,7 @@ jobs:
         continue-on-error: true
         id: grype
         with:
-          image: ${{ secrets.JFROG_URL }}/fitness-tracker-docker/user-service:${{ github.sha }}
+          image: ${{ secrets.JFROG_URL }}/fitness-tracker-docker/user-service:${{ needs.build-test-scan.outputs.image_tag }}
           output-format: sarif
 
       # TODO: once validated, register these SARIF files with Unify the same way
