@@ -137,6 +137,16 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
+      # This job runs on its own fresh runner - it does NOT inherit the
+      # docker/login-action session from build-test-scan's runner, so it needs
+      # its own login before Trivy/Grype can pull the image from JFrog.
+      - name: Log in to JFrog Artifactory
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.JFROG_URL }}
+          username: ${{ secrets.JFROG_USER }}
+          password: ${{ secrets.JFROG_TOKEN }}
+
       - name: Trivy scan (experimental)
         uses: aquasecurity/trivy-action@v0.36.0
         continue-on-error: true
