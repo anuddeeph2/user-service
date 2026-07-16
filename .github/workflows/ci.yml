@@ -119,7 +119,7 @@ jobs:
         with:
           name: user-service
           version: ${{ steps.vars.outputs.image_tag }}
-          url: https://${{ secrets.JFROG_URL }}/ui/repos/tree/General/fitness-tracker-docker/user-service
+          url: ${{ secrets.JFROG_URL }}/fitness-tracker-docker/user-service:${{ steps.vars.outputs.image_tag }}
           type: Docker
           commit: ${{ github.sha }}
           ref: ${{ github.ref }}
