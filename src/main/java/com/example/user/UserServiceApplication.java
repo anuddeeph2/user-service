@@ -9,3 +9,5 @@ public class UserServiceApplication {
         SpringApplication.run(UserServiceApplication.class, args);
     }
 }
+
+// code_scan trigger test (harmless comment)
